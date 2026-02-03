@@ -20,19 +20,17 @@ const runBuiltIn = (
   context: BuiltInContext,
 ) => {
   switch (command) {
-    case "echo": {
+    case "echo":
       context.stdout.write(args.join(" ") + "\n");
       context.stdout.end();
       break;
-    }
 
-    case "pwd": {
+    case "pwd":
       context.stdout.write(process.cwd() + "\n");
       context.stdout.end();
       break;
-    }
 
-    case "type": {
+    case "type":
       for (const cmd of args) {
         if (builtIns.has(cmd)) {
           context.stdout.write(`${cmd} is a shell builtin\n`);
@@ -44,11 +42,9 @@ const runBuiltIn = (
       }
       context.stdout.end();
       break;
-    }
 
-    default: {
+    default:
       context.stdout.end();
-    }
   }
 };
 
