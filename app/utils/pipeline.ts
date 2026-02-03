@@ -16,6 +16,10 @@ const executeBuiltInPipeline = (
       outputStream.write(args.join(" ") + "\n");
       break;
     }
+    case "pwd": {
+      outputStream.write(process.cwd() + "\n");
+      break;
+    }
     case "type": {
       for (const arg of args) {
         if (builtIns.has(arg)) {
@@ -56,17 +60,19 @@ const executePipeline = (rl: Interface, input: string) => {
 
   if (isLeftBuiltIn) {
     executeBuiltInPipeline(cmd1[0], args1, pipeline);
-    pipeline.end();
 
     if (isRightBuiltIn) {
       executeBuiltInPipeline(cmd2[0], args2, process.stdout);
+      pipeline.end();
       rl.prompt();
       return;
     } else {
       const rightProcess = spawn(cmd2[0], args2, {
         stdio: ["pipe", "inherit", "inherit"],
       });
+
       pipeline.pipe(rightProcess.stdin!);
+      pipeline.end();
 
       rightProcess.on("exit", () => {
         rl.prompt();
@@ -81,8 +87,8 @@ const executePipeline = (rl: Interface, input: string) => {
 
     if (isRightBuiltIn) {
       executeBuiltInPipeline(cmd2[0], args2, process.stdout);
-      pipeline.end();
       rl.prompt();
+      return;
     } else {
       const rightProcess = spawn(cmd2[0], args2, {
         stdio: ["pipe", "inherit", "inherit"],
