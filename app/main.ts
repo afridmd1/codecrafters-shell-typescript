@@ -7,7 +7,9 @@ const rl: Interface = createInterface({
   prompt: "$ ",
 });
 
-rl.on("line", (line: string) => {
+rl.prompt();
+
+rl.on("line", (line: string = "") => {
   const input = line.trim();
   if (input) {
     console.log(`${input}: command not found`);
