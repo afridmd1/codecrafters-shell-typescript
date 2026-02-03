@@ -44,7 +44,6 @@ rl.on("line", (line: string = "") => {
 
   if (input.includes("|")) {
     executePipeline(rl, input);
-    rl.prompt();
     return;
   }
 
