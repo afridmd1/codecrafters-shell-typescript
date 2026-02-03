@@ -1,94 +1,107 @@
 import { spawn } from "node:child_process";
 import { PassThrough } from "node:stream";
 import type { Interface } from "node:readline";
+import type { Readable, Writable } from "node:stream";
 
 //utilities
+import parseArguments from "./argumentsParser.ts";
+import { findInPath } from "./pathUtils.ts";
 import { builtIns } from "./utilityData.ts";
 
-const executeBuiltInPipeline = (
-  cmd: string,
+type BuiltInContext = {
+  stdin: Readable;
+  stdout: Writable;
+  stderr: Writable;
+};
+
+const runBuiltIn = (
+  command: string,
   args: string[],
-  outputStream: NodeJS.WritableStream,
+  context: BuiltInContext,
 ) => {
-  //to be implemented
-  switch (cmd) {
+  switch (command) {
     case "echo": {
-      outputStream.write(args.join(" ") + "\n");
+      context.stdout.write(args.join(" ") + "\n");
+      context.stdout.end();
       break;
     }
+
     case "pwd": {
-      outputStream.write(process.cwd() + "\n");
+      context.stdout.write(process.cwd() + "\n");
+      context.stdout.end();
       break;
     }
+
     case "type": {
-      for (const arg of args) {
-        if (builtIns.has(arg)) {
-          outputStream.write(`${arg} is a shell builtin\n`);
+      for (const cmd of args) {
+        if (builtIns.has(cmd)) {
+          context.stdout.write(`${cmd} is a shell builtin\n`);
         } else {
-          outputStream.write(`${arg} not found\n`);
+          const p = findInPath(cmd);
+          if (p) context.stdout.write(`${cmd} is ${p}\n`);
+          else context.stderr.write(`${cmd} not found\n`);
         }
       }
+      context.stdout.end();
       break;
     }
+
     default: {
+      context.stdout.end();
     }
   }
 };
 
-const executePipeline = (rl: Interface, input: string) => {
-  const pipelineParts = input.split("|").map((part) => part.trim());
-  const stages = pipelineParts.map((part) => {
-    const [cmd, ...args] = part.split(" ").filter((s) => s.length > 0);
-    return { cmd, args };
-  });
-  const pipes = [];
+const executePipeline = (input: string, rl: Interface) => {
+  const segments = input.split("|").map((s) => s.trim());
+  const count = segments.length;
 
-  for (let i = 0; i < stages.length - 1; i++) {
-    pipes.push(new PassThrough());
-  }
+  const pipes = Array.from({ length: count - 1 }, () => new PassThrough());
 
   let lastProcess: ReturnType<typeof spawn> | null = null;
 
-  for (let i = 0; i < stages.length; i++) {
-    const [cmd, args] = stages[i] ? [stages[i].cmd, stages[i].args] : ["", []];
+  for (let i = 0; i < count; i++) {
+    const [cmd, ...args] = parseArguments(segments[i]);
+    const isBuiltin = builtIns.has(cmd);
 
-    const inputStream = i > 0 ? pipes[i - 1] : null;
-    const outputStream = i < pipes.length ? pipes[i] : null;
+    const stdin = i === 0 ? process.stdin : pipes[i - 1];
 
-    if (builtIns.has(cmd)) {
-      executeBuiltInPipeline(cmd, args, outputStream ?? process.stdout);
-      if (outputStream) {
-        outputStream.end();
-      }
+    const stdout = i === count - 1 ? process.stdout : pipes[i];
+
+    if (isBuiltin) {
+      runBuiltIn(cmd, args, {
+        stdin,
+        stdout,
+        stderr: process.stderr,
+      });
     } else {
-      const process = spawn(cmd, args, {
+      const cmdPath = findInPath(cmd);
+      const child = spawn(cmdPath!, args, {
         stdio: [
-          inputStream ? "pipe" : "inherit",
-          outputStream ? "pipe" : "inherit",
+          i === 0 ? "inherit" : "pipe",
+          i === count - 1 ? "inherit" : "pipe",
           "inherit",
         ],
+        argv0: cmd,
       });
 
-      lastProcess = process;
-
-      if (inputStream) {
-        inputStream.pipe(process.stdin!);
+      if (i > 0) {
+        pipes[i - 1].pipe(child.stdin!);
       }
 
-      if (outputStream) {
-        process.stdout?.pipe(outputStream!);
+      if (i < count - 1) {
+        child.stdout!.pipe(pipes[i]);
       }
+
+      lastProcess = child;
     }
   }
 
-  const lastStage = stages[stages.length - 1];
-
-  if (builtIns.has(lastStage.cmd)) {
-    rl.prompt();
+  if (lastProcess) {
+    lastProcess.on("exit", () => rl.prompt());
   } else {
-    lastProcess?.on("close", () => {
-      rl.prompt();
-    });
+    // last command was a builtin
+    rl.prompt();
   }
 };
 

@@ -2,15 +2,15 @@ import { createInterface } from "node:readline";
 import type { Interface } from "node:readline";
 
 //utilities
+import executePipeline from "./utils/pipeline.ts";
 import {
   addToHistory,
   loadHistoryFromFile,
   writeHistoryToFile,
-} from "./utils/history.js";
-import parseArguments from "./utils/argumentsParser.js";
-import executeCommand from "./utils/executor.js";
-import autoCompleter from "./utils/autoCompleter.js";
-import executePipeline from "./utils/pipeline.js";
+} from "./utils/history.ts";
+import parseArguments from "./utils/argumentsParser.ts";
+import executeCommand from "./utils/executor.ts";
+import autoCompleter from "./utils/autoCompleter.ts";
 
 const rl: Interface = createInterface({
   input: process.stdin,
@@ -42,8 +42,9 @@ rl.on("line", (line: string = "") => {
   //preserve history
   addToHistory(input);
 
+  //pipeline handling
   if (input.includes("|")) {
-    executePipeline(rl, input);
+    executePipeline(input, rl);
     return;
   }
 
