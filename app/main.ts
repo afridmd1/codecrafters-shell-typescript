@@ -12,9 +12,17 @@ rl.prompt();
 rl.on("line", (line: string = "") => {
   const input = line.trim();
 
+  const parts = input.split(" ");
+  const command = parts[0];
+  const args = parts.slice(1);
+
   if (input === "exit") {
     rl.close();
     return;
+  }
+
+  if (input === "echo") {
+    console.log(args.join(" "));
   }
 
   if (input) {
