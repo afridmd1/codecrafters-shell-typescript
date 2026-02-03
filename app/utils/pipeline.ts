@@ -36,70 +36,59 @@ const executeBuiltInPipeline = (
 };
 
 const executePipeline = (rl: Interface, input: string) => {
-  const input1 = input.split("|")[0].trim(),
-    cmd1 = input1.split(" "),
-    args1 = cmd1.slice(1);
-  const input2 = input.split("|")[1].trim(),
-    cmd2 = input2.split(" "),
-    args2 = cmd2.slice(1);
+  const pipelineParts = input.split("|").map((part) => part.trim());
+  const stages = pipelineParts.map((part) => {
+    const [cmd, ...args] = part.split(" ").filter((s) => s.length > 0);
+    return { cmd, args };
+  });
+  const pipes = [];
 
-  let isLeftBuiltIn = false,
-    isRightBuiltIn = false;
+  for (let i = 0; i < stages.length - 1; i++) {
+    pipes.push(new PassThrough());
+  }
 
-  if (builtIns.has(cmd1[0])) isLeftBuiltIn = true;
-  if (builtIns.has(cmd2[0])) isRightBuiltIn = true;
+  let lastProcess: ReturnType<typeof spawn> | null = null;
 
-  /*
-  built-in | built-in
-  built-in | external
-  external | built-in
-  external | external
-  */
+  for (let i = 0; i < stages.length; i++) {
+    const [cmd, args] = stages[i] ? [stages[i].cmd, stages[i].args] : ["", []];
 
-  const pipeline = new PassThrough();
+    const inputStream = i > 0 ? pipes[i - 1] : null;
+    const outputStream = i < pipes.length ? pipes[i] : null;
 
-  if (isLeftBuiltIn) {
-    executeBuiltInPipeline(cmd1[0], args1, pipeline);
-
-    if (isRightBuiltIn) {
-      executeBuiltInPipeline(cmd2[0], args2, process.stdout);
-      pipeline.end();
-      rl.prompt();
-      return;
+    if (builtIns.has(cmd)) {
+      executeBuiltInPipeline(cmd, args, outputStream ?? process.stdout);
+      if (outputStream) {
+        outputStream.end();
+      }
     } else {
-      const rightProcess = spawn(cmd2[0], args2, {
-        stdio: ["pipe", "inherit", "inherit"],
+      const process = spawn(cmd, args, {
+        stdio: [
+          inputStream ? "pipe" : "inherit",
+          outputStream ? "pipe" : "inherit",
+          "inherit",
+        ],
       });
 
-      pipeline.pipe(rightProcess.stdin!);
-      pipeline.end();
+      lastProcess = process;
 
-      rightProcess.on("exit", () => {
-        rl.prompt();
-      });
+      if (inputStream) {
+        inputStream.pipe(process.stdin!);
+      }
+
+      if (outputStream) {
+        process.stdout?.pipe(outputStream!);
+      }
     }
+  }
+
+  const lastStage = stages[stages.length - 1];
+
+  if (builtIns.has(lastStage.cmd)) {
+    rl.prompt();
   } else {
-    const leftProcess = spawn(cmd1[0], args1, {
-      stdio: ["inherit", "pipe", "inherit"],
-    });
-
-    leftProcess.stdout!.pipe(pipeline);
-
-    if (isRightBuiltIn) {
-      executeBuiltInPipeline(cmd2[0], args2, process.stdout);
+    lastProcess?.on("exit", () => {
       rl.prompt();
-      return;
-    } else {
-      const rightProcess = spawn(cmd2[0], args2, {
-        stdio: ["pipe", "inherit", "inherit"],
-      });
-
-      pipeline.pipe(rightProcess.stdin!);
-
-      rightProcess.on("exit", () => {
-        rl.prompt();
-      });
-    }
+    });
   }
 };
 
