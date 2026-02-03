@@ -16,16 +16,18 @@ rl.on("line", (line: string = "") => {
   const command = parts[0];
   const args = parts.slice(1);
 
-  if (input === "exit") {
+  if (command === "exit") {
     rl.close();
     return;
   }
 
-  if (input === "echo") {
+  if (command === "echo") {
     console.log(args.join(" "));
+    rl.prompt();
+    return;
   }
 
-  if (input) {
+  if (command) {
     console.log(`${input}: command not found`);
   }
 
