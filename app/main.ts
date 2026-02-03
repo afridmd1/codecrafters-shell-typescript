@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { createInterface } from "node:readline";
 import type { Interface } from "node:readline";
 
@@ -11,6 +10,7 @@ import {
 import parseArguments from "./utils/argumentsParser.js";
 import executeCommand from "./utils/executor.js";
 import autoCompleter from "./utils/autoCompleter.js";
+import executePipeline from "./utils/pipeline.js";
 
 const rl: Interface = createInterface({
   input: process.stdin,
@@ -41,6 +41,12 @@ rl.on("line", (line: string = "") => {
 
   //preserve history
   addToHistory(input);
+
+  if (input.includes("|")) {
+    executePipeline(rl, input);
+    rl.prompt();
+    return;
+  }
 
   const parts = parseArguments(input);
   const command = parts[0];
