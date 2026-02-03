@@ -6,6 +6,12 @@ const rl = createInterface({
 });
 
 // TODO: Uncomment the code below to pass the first stage
-rl.question("$ ", (answer) => {
+rl.question("$ ", (line: string) => {
+  const input = line.trim();
+
+  if (line) {
+    console.log(`${input}: command not found`);
+  }
+
   rl.close();
 });
