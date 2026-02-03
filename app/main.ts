@@ -1,17 +1,20 @@
 import { createInterface } from "node:readline";
+import type { Interface } from "node:readline";
 
-const rl = createInterface({
+const rl: Interface = createInterface({
   input: process.stdin,
   output: process.stdout,
+  prompt: "$ ",
 });
 
-// TODO: Uncomment the code below to pass the first stage
-rl.question("$ ", (line: string) => {
+rl.on("line", (line: string) => {
   const input = line.trim();
-
-  if (line) {
+  if (input) {
     console.log(`${input}: command not found`);
   }
+  rl.prompt();
+});
 
-  rl.close();
+rl.on("close", () => {
+  process.exit(0);
 });
