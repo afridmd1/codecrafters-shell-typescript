@@ -86,7 +86,7 @@ const executePipeline = (rl: Interface, input: string) => {
   if (builtIns.has(lastStage.cmd)) {
     rl.prompt();
   } else {
-    lastProcess?.on("exit", () => {
+    lastProcess?.on("close", () => {
       rl.prompt();
     });
   }
