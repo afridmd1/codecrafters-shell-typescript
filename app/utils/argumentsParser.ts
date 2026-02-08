@@ -1,5 +1,5 @@
 //utilities
-import { escapeCharacters } from "./utilityData.js";
+import { escapeCharacters } from "./utilityData.ts";
 
 const parseArguments = (input: string): string[] => {
   const args: string[] = [];

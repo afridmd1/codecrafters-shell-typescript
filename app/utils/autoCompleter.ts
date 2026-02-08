@@ -2,7 +2,7 @@ import path from "node:path";
 import fs from "node:fs";
 
 //utilities
-import { builtIns } from "./utilityData.js";
+import { builtIns } from "./utilityData.ts";
 
 let lastLine = "",
   tabCount = 0;
@@ -10,6 +10,8 @@ let lastLine = "",
 const longestCommonPrefix = (strings: string[]) => {
   if (strings.length === 0) return "";
   if (strings.length === 1) return strings[0];
+
+  strings.sort();
 
   const firstStr = strings[0],
     lastStr = strings[strings.length - 1];
@@ -45,7 +47,7 @@ const autoCompleter = (line: string) => {
     }
   }
 
-  const matches = Array.from(allMatches).sort();
+  const matches = Array.from(allMatches);
 
   if (matches.length === 1) {
     lastLine = "";
