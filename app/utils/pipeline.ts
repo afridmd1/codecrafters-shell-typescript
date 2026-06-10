@@ -108,6 +108,7 @@ const executePipeline = (input: string, rl: Interface) => {
 
   const cleanup = () => {
     process.stdin.unpipe(); // unpipe from any child process
+    process.stdin.resume();
     pipes.forEach((p) => p.destroy());
     children.forEach((c) => c.kill());
   };
@@ -176,7 +177,13 @@ const executePipeline = (input: string, rl: Interface) => {
         rl.prompt();
       });
 
-      stdin.pipe(child.stdin!);
+      if (i === 0) {
+        process.stdin.pause();
+        process.stdin.pipe(child.stdin!);
+      } else {
+        pipes[i - 1].pipe(child.stdin!);
+      }
+
       child.stdout!.pipe(stdout);
       child.stderr!.pipe(stderr);
 
@@ -189,6 +196,7 @@ const executePipeline = (input: string, rl: Interface) => {
   } else if (lastProcess) {
     lastProcess.on("exit", () => {
       process.stdin.unpipe(); // unpipe from the last process
+      process.stdin.resume();
       rl.prompt();
     });
   }
