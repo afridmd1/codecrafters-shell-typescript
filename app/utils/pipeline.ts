@@ -128,6 +128,25 @@ const executePipeline = (input: string, rl: Interface) => {
     const isBuiltin = builtIns.has(cmd);
     const isLast = i === count - 1;
 
+    // pre-create redirect files
+    if (redirection.stdout) {
+      fs.closeSync(
+        fs.openSync(
+          redirection.stdout.file,
+          redirection.stdout.append ? "a" : "w",
+        ),
+      );
+    }
+
+    if (redirection.stderr) {
+      fs.closeSync(
+        fs.openSync(
+          redirection.stderr.file,
+          redirection.stderr.append ? "a" : "w",
+        ),
+      );
+    }
+
     const redirStdout = redirection.stdout
       ? fs.createWriteStream(redirection.stdout.file, {
           flags: redirection.stdout.append ? "a" : "w",
