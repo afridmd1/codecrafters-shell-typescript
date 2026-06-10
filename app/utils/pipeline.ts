@@ -37,12 +37,12 @@ const runBuiltIn = (
 
     case "echo":
       context.stdout.write(args.join(" ") + "\n");
-      if (context.isLast) context.stdout.end();
+      if (context.stdout !== process.stdout) context.stdout.end();
       break;
 
     case "pwd":
       context.stdout.write(process.cwd() + "\n");
-      if (context.isLast) context.stdout.end();
+      if (context.stdout !== process.stdout) context.stdout.end();
       break;
 
     case "cd":
@@ -69,7 +69,7 @@ const runBuiltIn = (
           context.stderr.write(`cd: ${targetDir}: No such file or directory\n`);
         }
       }
-      if (context.isLast) context.stdout.end();
+      if (context.stdout !== process.stdout) context.stdout.end();
       break;
 
     case "type":
@@ -82,16 +82,16 @@ const runBuiltIn = (
           else context.stderr.write(`${cmd} not found\n`);
         }
       }
-      if (context.isLast) context.stdout.end();
+      if (context.stdout !== process.stdout) context.stdout.end();
       break;
 
     case "history":
       // history in a pipeline doesn't make much sense, just end stdout
-      if (context.isLast) context.stdout.end();
+      if (context.stdout !== process.stdout) context.stdout.end();
       break;
 
     default:
-      if (context.isLast) context.stdout.end();
+      if (context.stdout !== process.stdout) context.stdout.end();
       break;
   }
 };
@@ -123,7 +123,6 @@ const executePipeline = (input: string, rl: Interface) => {
     }
 
     const tokens = result.args;
-
     const { args: allArgs, redirection } = parseRedirection(tokens);
     const [cmd, ...args] = allArgs;
     const isBuiltin = builtIns.has(cmd);
@@ -185,7 +184,7 @@ const executePipeline = (input: string, rl: Interface) => {
       }
 
       child.stdout!.pipe(stdout);
-      child.stderr!.pipe(stderr);
+      (child.stderr as Readable).pipe(stderr);
 
       lastProcess = child;
     }
