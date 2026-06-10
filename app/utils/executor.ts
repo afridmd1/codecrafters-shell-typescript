@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import type { Interface } from "node:readline";
 
 //commands
@@ -20,11 +19,6 @@ const executeCommand = (
   stderrFile: string | null,
   stderrMode: "w" | "a",
 ) => {
-  //ensure stderr file is writable/appedable always for builtins
-  if (stderrFile) {
-    fs.closeSync(fs.openSync(stderrFile, stderrMode));
-  }
-
   const ctx = {
     rl,
     command,
