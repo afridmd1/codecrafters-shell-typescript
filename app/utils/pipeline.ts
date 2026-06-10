@@ -107,6 +107,7 @@ const executePipeline = (input: string, rl: Interface) => {
   let lastIsBuiltIn = false;
 
   const cleanup = () => {
+    process.stdin.unpipe();
     pipes.forEach((p) => p.destroy());
     children.forEach((c) => c.kill());
   };
@@ -186,7 +187,10 @@ const executePipeline = (input: string, rl: Interface) => {
   if (lastIsBuiltIn) {
     rl.prompt();
   } else if (lastProcess) {
-    lastProcess.on("exit", () => rl.prompt());
+    lastProcess.on("exit", () => {
+      process.stdin.unpipe();
+      rl.prompt();
+    });
   }
 };
 
